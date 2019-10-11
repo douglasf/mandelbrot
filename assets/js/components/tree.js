@@ -26,7 +26,7 @@ class Tree {
                 this._state.push(collection.id);
             }
         }
-        this._state = jQuery.unique(this._state);
+        this._setState();
         this._applyState();
         events.on('main-content-preload', (e, url) => {
             this.selectItem(getTreeUrl(url));
@@ -36,24 +36,30 @@ class Tree {
     selectItem(url) {
         this._el.find('.is-current').removeClass('is-current');
         this._el.find(`[href="${url}"]`).parent().addClass('is-current');
+        this._setState();
+        this._applyState();
+    }
+
+    _setState() {
+        let state = [];
+        let current = this._el.find('.is-current')[0];
+        while (current) {
+            if (current.id) state.push(current.id);
+            current = current.parentNode.closest('.Tree-collection');
+        }
+        this._state = state;
     }
 
     _applyState() {
         for (let key in this._collections) {
             const collection = this._collections[key];
             if (this._state.indexOf(collection.id) > -1) {
-                collection.open(true);
+                collection.open();
             } else {
-                collection.close(true);
+                collection.close();
             }
         }
     }
-
-    saveState() {
-        this._state = this._collections.filter(c => c.isOpen).map(c => c.id);
-        storage.set(`tree.${this._id}.state`, this._state);
-    }
-
 }
 
 class TreeCollection {
@@ -71,24 +77,18 @@ class TreeCollection {
         return this._el[0].id;
     }
 
-    get isOpen(){
-        return this._isOpen;
-    }
-
     containsCurrentItem(){
         return !! this._itemsWrapper.find('[data-state="current"]').length;
     }
 
-    open(silent){
+    open(){
         this._el.removeClass('is-closed');
         this._isOpen = true;
-        if (!silent) this._tree.saveState();
     }
 
-    close(silent){
+    close(){
         this._el.addClass('is-closed');
         this._isOpen = false;
-        if (!silent) this._tree.saveState();
     }
 
     toggle(){
